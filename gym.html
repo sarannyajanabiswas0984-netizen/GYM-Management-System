@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gym Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <span class="logo-icon">🏋️</span>
+    <span class="logo-text">GYM MANAGEMENT SYSTEM</span>
+  </header>
+
+  <div class="topbar">
+    <button id="themeBtn">🌙 Dark / Light Mode</button>
+    <h2 id="clock"></h2>
+  </div>
+
+  <div class="container">
+
+    <!-- DASHBOARD -->
+    <div class="dashboard">
+      <div class="card"><h3>Total Members</h3><h2 id="totalMembers">0</h2></div>
+      <div class="card"><h3>Active Now</h3><h2 id="activeMembers">0</h2></div>
+      <div class="card"><h3>Plans Enrolled</h3><h2 id="activePlans">0</h2></div>
+    </div>
+
+    <!-- ADD MEMBER FORM -->
+    <form id="memberForm" novalidate>
+      <h3 class="form-title">➕ Add New Member</h3>
+      <div class="form-grid">
+
+        <input type="text" id="name" placeholder="Full Name" required autocomplete="off" />
+
+        <input type="number" id="age" placeholder="Your Age" min="1" max="100" required />
+
+        <div class="input-with-label">
+          <label for="joinDate" class="field-label">📅 Joining Date <span class="label-note"></span></label>
+          <input type="date" id="joinDate" required />
+        </div>
+
+        <select id="goal" required>
+          <option value="">— Select Fitness Goal —</option>
+          <optgroup label="🏷 Body Composition">
+            <option value="6 Pack Abs">🔥 6 Pack Abs</option>
+            <option value="Weight Loss">⚖️ Weight Loss</option>
+            <option value="Muscle Gain">💪 Muscle Gain</option>
+            <option value="Lean Bulk">📈 Lean Bulk</option>
+            <option value="Fat Burn">🔥 Fat Burn</option>
+            <option value="Body Toning">✨ Body Toning</option>
+          </optgroup>
+            <option value="General Fitness">🏃 General Fitness</option>
+            <option value="Strength Training">🏋️ Strength Training</option>
+            <option value="Powerlifting">🏆 Powerlifting</option>
+            <option value="Endurance & Stamina">🌬️ Endurance & Stamina</option>
+            <option value="Cardio Fitness">❤️ Cardio Fitness</option>
+            <option value="Flexibility & Mobility">🧘 Flexibility & Mobility</option>
+            <option value="Functional Fitness">⚡ Functional Fitness</option>
+            <option value="CrossFit">🔄 CrossFit</option>
+            <option value="HIIT Training">⏱️ HIIT Training</option>
+            <option value="Calisthenics">🤸 Calisthenics</option>
+          </optgroup>
+            <option value="Stress Relief">🧠 Stress Relief</option>
+            <option value="Posture Correction">🦴 Posture Correction</option>
+            <option value="Post-Injury Rehab">🩺 Post-Injury Rehab</option>
+            <option value="Sports Performance">⚽ Sports Performance</option>
+          </optgroup>
+        </select>
+
+        <select id="membership" required>
+          <option value="">— Membership Plan —</option>
+          <option value="1 Month">📆 1 Month</option>
+          <option value="3 Months">📆 3 Months</option>
+          <option value="6 Months">📆 6 Months</option>
+          <option value="1 Year">📆 1 Year</option>
+          <option value="2 Years">📆 2 Years</option>
+          <option value="3 Years">📆 3 Years</option>
+          <option value="4 Years">📆 4 Years</option>
+        </select>
+
+        <button type="submit" class="add">➕ Add Member</button>
+
+      </div>
+    </form>
+
+    <!-- SEARCH -->
+    <div class="search-bar">
+      <input type="text" id="search" placeholder="🔍 Search member by name..." autocomplete="off" />
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Goal</th>
+            <th>Plan</th>
+            <th>Joining Date</th>
+            <th>Check In</th>
+            <th>Check Out</th>
+            <th>Duration</th>
+            <th>Diet Plan</th>
+            <th>Remove</th>
+          </tr>
+        </thead>
+        <tbody id="memberTable"></tbody>
+      </table>
+      <p id="emptyMsg" class="empty-msg">No members yet. Add your first member above! 💪</p>
+    </div>
+
+  </div>
+
+  <!-- DIET MODAL -->
+  <div id="dietModal" class="modal-overlay" onclick="closeDietModal(event)">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeDietModalBtn()">✕</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
