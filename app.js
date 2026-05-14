@@ -1,6 +1,4 @@
-// ─────────────────────────────────────────────
-//  GYM MANAGEMENT SYSTEM — app.js
-// ─────────────────────────────────────────────
+
 
 const memberForm  = document.getElementById("memberForm");
 const memberTable = document.getElementById("memberTable");
@@ -99,9 +97,6 @@ function displayMembers(list) {
       <td><span class="duration-tag">${member.duration || "—"}</span></td>
       <td>
         <button class="viewbtn" onclick="openDietModal(${realIdx})">👁 View</button>
-      </td>
-      <td>
-        <button class="extendbtn" onclick="openExtendModal(${realIdx})">🔄 Extend</button>
       </td>
       <td>
         <button class="delete" onclick="deleteMember(${realIdx})">🗑 Remove</button>
