@@ -192,9 +192,6 @@ function showAlert(msg, type = "error") {
   setTimeout(() => div.remove(), 3500);
 }
 
-// ══════════════════════════════════════════════
-//  DIET PLAN DATA — per goal
-// ══════════════════════════════════════════════
 const dietPlans = {
   "6 Pack Abs": {
     color: "#ff4d00",
@@ -269,7 +266,7 @@ const dietPlans = {
     color: "#a855f7",
     icon: "📈",
     eat: [
-      "Lean meats: turkey, tuna",
+      "Lean meats, turkey, tuna",
       "Eggs (whole + whites)",
       "Oats, quinoa, sweet potato",
       "Low-fat dairy: paneer, Greek yogurt",
