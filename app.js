@@ -756,5 +756,4 @@ function confirmExtend() {
   showAlert(`✅ ${m.name}'s plan extended! New plan: ${newPlan}`, "success");
 }
 
-// ── INIT ──────────────────────────────────────
 displayMembers();
