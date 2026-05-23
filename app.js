@@ -725,10 +725,6 @@ const dietPlans = {
   }
 };
 
-/* ════════════════════════════════════════════════════════════════
-   HEALTH MODIFIERS
-   Extra items appended / flagged based on health profile
-════════════════════════════════════════════════════════════════ */
 
 // Items diabetics MUST avoid (appended to avoid list with red highlight)
 const diabeticAvoid = [
@@ -796,9 +792,7 @@ const dualConditionAvoid = [
   "🚫 Skipping meals — worsens blood sugar swings"
 ];
 
-/* ════════════════════════════════════════════════════════════════
-   HEALTH WARNING TEXT BUILDER
-════════════════════════════════════════════════════════════════ */
+
 function buildHealthWarning(member) {
   const db = member.diabetesStatus || "non-diabetic";
   const wt = member.weightStatus   || "normal-weight";
@@ -876,9 +870,6 @@ function buildHealthWarning(member) {
   `).join("");
 }
 
-/* ════════════════════════════════════════════════════════════════
-   BUILD MODIFIED EAT / AVOID LISTS BASED ON HEALTH PROFILE
-════════════════════════════════════════════════════════════════ */
 function buildHealthAwareLists(plan, member) {
   const db = member.diabetesStatus || "non-diabetic";
   const wt = member.weightStatus   || "normal-weight";
@@ -923,9 +914,7 @@ function buildHealthAwareLists(plan, member) {
   return { eatHTML, avoidHTML };
 }
 
-/* ════════════════════════════════════════════════════════════════
-   DIET MODAL
-════════════════════════════════════════════════════════════════ */
+
 function openDietModal(index) {
   const m    = members[index];
   const plan = dietPlans[m.goal];
