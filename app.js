@@ -1,5 +1,4 @@
-
-
+// ── DOM REFERENCES ────────────────────────────
 const memberForm  = document.getElementById("memberForm");
 const memberTable = document.getElementById("memberTable");
 const searchInput = document.getElementById("search");
@@ -64,6 +63,27 @@ function esc(str) {
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
+// ── HEALTH BADGE HELPER ───────────────────────
+function getHealthBadgeHTML(member) {
+  const db  = member.diabetesStatus  || "";
+  const wt  = member.weightStatus    || "";
+
+  let dbClass = "pill-nondiabetic", dbLabel = "✅ Non-Diabetic";
+  if (db === "pre-diabetic")      { dbClass = "pill-prediabetic"; dbLabel = "⚠️ Pre-Diabetic"; }
+  if (db === "diabetic-type1")    { dbClass = "pill-diabetic";    dbLabel = "💉 Diabetic T1"; }
+  if (db === "diabetic-type2")    { dbClass = "pill-diabetic";    dbLabel = "🩸 Diabetic T2"; }
+
+  let wtClass = "pill-normal", wtLabel = "✅ Normal";
+  if (wt === "underweight") { wtClass = "pill-under";     wtLabel = "📉 Underweight"; }
+  if (wt === "overweight")  { wtClass = "pill-overweight"; wtLabel = "⚖️ Overweight"; }
+  if (wt === "obese")       { wtClass = "pill-obese";      wtLabel = "🔴 Obese"; }
+
+  return `<div class="health-badge">
+    <span class="health-pill ${dbClass}">${dbLabel}</span>
+    <span class="health-pill ${wtClass}">${wtLabel}</span>
+  </div>`;
+}
+
 // ── DISPLAY MEMBERS ───────────────────────────
 function displayMembers(list) {
   const toShow = Array.isArray(list) ? list : members;
@@ -85,6 +105,7 @@ function displayMembers(list) {
       <td>${member.age}</td>
       <td>${esc(member.goal)}</td>
       <td><span class="badge">${esc(member.membership)}</span></td>
+      <td>${getHealthBadgeHTML(member)}</td>
       <td>${member.joinDate}</td>
       <td>
         <button class="attend" onclick="checkIn(${realIdx})">Check In</button>
@@ -112,17 +133,32 @@ function displayMembers(list) {
 memberForm.addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const name       = document.getElementById("name").value.trim();
-  const age        = Number(document.getElementById("age").value);
-  const goal       = document.getElementById("goal").value;
-  const membership = document.getElementById("membership").value;
-  const joinDate   = document.getElementById("joinDate").value;
+  const name            = document.getElementById("name").value.trim();
+  const age             = Number(document.getElementById("age").value);
+  const goal            = document.getElementById("goal").value;
+  const membership      = document.getElementById("membership").value;
+  const joinDate        = document.getElementById("joinDate").value;
+  const diabetesStatus  = document.getElementById("diabetesStatus").value;
+  const weightStatus    = document.getElementById("weightStatus").value;
 
-  if (!name || name.length < 2)        { showAlert("❌ Full name is required (min 2 chars)."); return; }
-  if (!age || age < 1 || age > 100)    { showAlert("❌ Age must be between 1 and 100."); return; }
-  if (!goal)                           { showAlert("❌ Please select a fitness goal."); return; }
-  if (!membership)                     { showAlert("❌ Please select a membership plan."); return; }
-  if (!joinDate)                       { showAlert("❌ Please select the Joining Date (not Date of Birth)."); return; }
+  // Validations
+  if (!name || name.length < 2)
+    { showAlert("❌ Full name is required (min 2 characters)."); return; }
+
+  // Age: strictly 17–100
+  if (!age || age < 17 || age > 100)
+    { showAlert("❌ Age must be between 17 and 100 years. Members below 17 or above 100 cannot be registered."); return; }
+
+  if (!goal)
+    { showAlert("❌ Please select a fitness goal."); return; }
+  if (!membership)
+    { showAlert("❌ Please select a membership plan."); return; }
+  if (!joinDate)
+    { showAlert("❌ Please select the joining date."); return; }
+  if (!diabetesStatus)
+    { showAlert("❌ Please select the diabetes status (Health Section)."); return; }
+  if (!weightStatus)
+    { showAlert("❌ Please select the weight status (Health Section)."); return; }
 
   const dup = members.find(m => m.name.toLowerCase() === name.toLowerCase());
   if (dup) { showAlert(`⚠️ Member "${name}" already exists.`); return; }
@@ -130,6 +166,7 @@ memberForm.addEventListener("submit", (e) => {
   members.push({
     id: Date.now(),
     name, age, goal, membership, joinDate,
+    diabetesStatus, weightStatus,
     checkIn: "", checkOut: "", duration: ""
   });
 
@@ -153,8 +190,8 @@ function checkIn(index) {
 // ── CHECK OUT ─────────────────────────────────
 function checkOut(index) {
   const m = members[index];
-  if (!m.checkIn)   { showAlert("⚠️ Please check in first."); return; }
-  if (m.checkOut)   { showAlert("⚠️ Already checked out."); return; }
+  if (!m.checkIn)  { showAlert("⚠️ Please check in first."); return; }
+  if (m.checkOut)  { showAlert("⚠️ Already checked out."); return; }
   m.checkOut = new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" });
   m.duration = calcDuration(m.checkIn, m.checkOut);
   saveData();
@@ -189,458 +226,491 @@ function showAlert(msg, type = "error") {
   div.className = "gym-alert " + type;
   div.innerText = msg;
   document.querySelector(".container").prepend(div);
-  setTimeout(() => div.remove(), 3500);
+  setTimeout(() => div.remove(), 4000);
 }
 
+/* ════════════════════════════════════════════════════════════════
+   BASE DIET PLANS
+   Rules enforced throughout:
+   • Meat = chicken or fish ONLY (no red meat, pork, lamb, etc.)
+   • Items are marked as health-safe or risky for diabetics / overweight
+════════════════════════════════════════════════════════════════ */
 const dietPlans = {
   "6 Pack Abs": {
-    color: "#ff4d00",
-    icon: "🔥",
+    color: "#ff4d00", icon: "🔥",
     eat: [
       "Egg whites & whole eggs (high protein)",
-      "Chicken breast, turkey, lean fish",
+      "Chicken breast (grilled / boiled) — lean protein",
+      "Fish: rohu, katla, salmon, tuna — omega-3 & protein",
       "Brown rice, oats, sweet potato (complex carbs)",
       "Leafy greens: spinach, broccoli, kale",
-      "Greek yogurt & cottage cheese",
-      "Almonds, walnuts (healthy fats in moderation)",
-      "Green tea & plenty of water (3–4 L/day)"
+      "Greek yogurt & cottage cheese (paneer)",
+      "Almonds, walnuts — healthy fats in moderation",
+      "Green tea & water (3–4 L/day)"
     ],
     avoid: [
       "Sugary drinks: soda, juices, energy drinks",
-      "White bread, pasta, refined flour items",
+      "White bread, pasta, refined flour (maida) items",
       "Fried & fast foods",
-      "Alcohol (causes belly fat)",
+      "Alcohol — causes belly fat",
       "Ice cream, sweets & chocolates",
-      "Processed meats (sausage, bacon)",
-      "Excess salt (causes water retention)"
+      "Processed meats — sausage, bacon, red meat",
+      "Excess salt — causes water retention"
     ],
-    tip: "Combine a calorie deficit with core workouts. Abs are made in the kitchen!"
+    tip: "Combine a calorie deficit with core workouts. Abs are truly made in the kitchen!"
   },
+
   "Weight Loss": {
-    color: "#22c55e",
-    icon: "⚖️",
+    color: "#22c55e", icon: "⚖️",
     eat: [
       "Fruits: apple, papaya, watermelon, berries",
       "Vegetables: cucumber, tomato, carrot, beans",
-      "Lentils, dal, chickpeas (high fibre & protein)",
-      "Poha, idli, upma (light Indian meals)",
+      "Lentils, dal, chickpeas — high fibre & protein",
+      "Poha, idli, upma — light Indian meals",
       "Buttermilk, low-fat curd",
-      "Whole wheat roti, brown rice",
+      "Boiled / grilled chicken breast — low-calorie protein",
+      "Fish: rohu, tuna — lean, filling protein",
+      "Whole wheat roti, brown rice (small portions)",
       "Soups & salads before main meals"
     ],
     avoid: [
-      "Deep-fried snacks: samosa, pakoda, chips",
-      "Sugary chai, coffee with full-cream milk",
-      "White rice in excess",
-      "Sweets: ladoo, halwa, barfi",
-      "Packaged biscuits & namkeen",
-      "Aerated drinks & fruit juices",
-      "Late-night eating"
+      "Deep-fried foods — samosa, puri, pakoda",
+      "Sugary drinks — soda, packaged juices",
+      "White rice in large portions",
+      "Sweets, mithai, chocolates",
+      "Red meat, mutton, pork",
+      "Late-night heavy meals",
+      "Butter, ghee in excess",
+      "Alcohol"
     ],
-    tip: "Eat smaller portions 5–6 times a day. Never skip breakfast!"
+    tip: "Eat slowly, chew well, stop at 80% full. Small sustainable deficits beat crash diets."
   },
+
   "Muscle Gain": {
-    color: "#3b82f6",
-    icon: "💪",
+    color: "#f59e0b", icon: "💪",
     eat: [
-      "Chicken, egg, fish, paneer (protein sources)",
-      "Whole milk, whey protein shake",
-      "Brown rice, sweet potato, banana (carbs for energy)",
-      "Peanut butter & almond butter",
-      "Rajma, chana, soya chunks",
-      "Dry fruits: dates, raisins, cashews",
-      "Pre & post-workout meals are key"
+      "Chicken breast & thigh — high protein for muscle repair",
+      "Fish: salmon, tuna, rohu — protein + omega-3",
+      "Eggs (whole) — complete amino acid profile",
+      "Paneer / cottage cheese — casein protein",
+      "Whole milk or low-fat milk",
+      "Rice, roti, oats, sweet potato — carbs for energy",
+      "Lentils, rajma, chickpeas — plant protein",
+      "Banana post-workout for quick carbs",
+      "Nuts & peanut butter — healthy fats + calories"
     ],
     avoid: [
-      "Skipping meals (muscles need constant fuel)",
-      "Junk food with empty calories",
-      "Excess alcohol (suppresses testosterone)",
-      "Too much cardio (burns muscle)",
-      "Low-calorie crash diets",
-      "Carbonated drinks",
-      "Trans fats (margarine, packaged snacks)"
-    ],
-    tip: "Eat in a calorie surplus. Aim for 1.6–2.2g protein per kg of bodyweight daily."
-  },
-  "Lean Bulk": {
-    color: "#a855f7",
-    icon: "📈",
-    eat: [
-      "Lean meats, turkey, tuna",
-      "Eggs (whole + whites)",
-      "Oats, quinoa, sweet potato",
-      "Low-fat dairy: paneer, Greek yogurt",
-      "Nuts & seeds in small amounts",
-      "Whey protein post-workout",
-      "Lots of vegetables for micronutrients"
-    ],
-    avoid: [
-      "Dirty bulk foods: burgers, pizza, fries",
-      "Excess sugar and sweets",
-      "High-fat dairy in large amounts",
-      "Processed and packaged foods",
-      "Soft drinks",
-      "Skipping rest days",
-      "Overeating (lean bulk = moderate surplus only)"
-    ],
-    tip: "Aim for only 200–300 extra calories above maintenance. Slow and clean gains."
-  },
-  "Fat Burn": {
-    color: "#f59e0b",
-    icon: "🔥",
-    eat: [
-      "Green vegetables: spinach, broccoli, zucchini",
-      "Lean proteins: egg whites, fish, chicken",
-      "Green tea, black coffee (boosts metabolism)",
-      "Apple cider vinegar (diluted in water)",
-      "Grapefruit, berries (low-sugar fruits)",
-      "Chia seeds, flaxseeds",
-      "Plenty of water throughout the day"
-    ],
-    avoid: [
-      "Sugary foods and drinks",
-      "Refined carbs (white bread, maida)",
-      "Alcohol",
-      "Butter, ghee in large quantities",
-      "Fruit juices (high sugar)",
-      "Processed snack foods",
-      "Eating 2–3 hours before bed"
-    ],
-    tip: "HIIT workouts + intermittent fasting is the fastest way to burn fat."
-  },
-  "Body Toning": {
-    color: "#ec4899",
-    icon: "✨",
-    eat: [
-      "Chicken, fish, eggs (lean protein)",
-      "Quinoa, oats, brown rice",
-      "Green salads with olive oil dressing",
-      "Fruits rich in antioxidants",
-      "Low-fat yogurt & milk",
-      "Almonds, walnuts (handful per day)",
-      "Hydration: 2.5–3 L water daily"
-    ],
-    avoid: [
-      "Excess sodium (bloating)",
-      "Deep-fried snacks",
-      "High-sugar desserts",
-      "Full-fat dairy in excess",
-      "White flour products",
-      "Carbonated drinks",
-      "Skipping leg day meals 😄"
-    ],
-    tip: "Focus on resistance training + light cardio. High reps, moderate weight."
-  },
-  "General Fitness": {
-    color: "#14b8a6",
-    icon: "🏃",
-    eat: [
-      "Balanced meals: protein + carbs + fats",
-      "Dal, sabzi, roti, rice (traditional balanced meal)",
-      "Seasonal fruits and vegetables",
-      "Eggs, milk, curd (daily)",
-      "Nuts and seeds as snacks",
-      "Whole grain bread and cereals",
-      "Stay well hydrated"
-    ],
-    avoid: [
-      "Junk & fast food regularly",
-      "Excessive sugar and sweets",
-      "Too much caffeine",
-      "Skipping meals",
-      "Packaged ready-to-eat foods",
-      "Excess oil in cooking",
-      "Sodas and aerated drinks"
-    ],
-    tip: "Consistency matters more than perfection. Eat 80% clean, 20% flexible."
-  },
-  "Strength Training": {
-    color: "#f97316",
-    icon: "🏋️",
-    eat: [
-      "Red meat  — rich in creatine",
-      "Whole eggs — testosterone support",
-      "Milk, paneer, whey protein",
-      "Complex carbs: oats, rice, potato (fuel for lifts)",
-      "Beets and spinach (nitric oxide boost)",
-      "Banana pre-workout",
-      "Creatine monohydrate supplement (optional)"
-    ],
-    avoid: [
-      "Low-protein diets",
-      "Excessive alcohol (weakens recovery)",
-      "Long gaps between meals",
-      "Skipping post-workout nutrition",
-      "Junk food on heavy lift days",
-      "Excess caffeine (disrupts sleep = poor recovery)",
-      "Highly processed foods"
-    ],
-    tip: "Progressive overload + enough protein + deep sleep = strength gains."
-  },
-  "Powerlifting": {
-    color: "#dc2626",
-    icon: "🏆",
-    eat: [
-      "Very high protein: 2–2.5g per kg bodyweight",
-      "Red meat, whole eggs, fish",
-      "High carbs around training sessions",
-      "Full-fat dairy for calories",
-      "Peanut butter, almond butter",
-      "Carb loading before competition",
-      "Electrolytes: sodium, potassium, magnesium"
-    ],
-    avoid: [
-      "Calorie deficit (you need surplus for strength)",
-      "Fasted training without fuel",
-      "Low-carb diets (reduces performance)",
-      "Alcohol before competition",
-      "Dehydration",
-      "Excessive fiber before lifting (causes discomfort)",
-      "Skipping warm-up meals"
-    ],
-    tip: "Eat big to lift big. Focus on squat, bench, deadlift. Sleep 8–9 hours."
-  },
-  "Endurance & Stamina": {
-    color: "#0ea5e9",
-    icon: "🌬️",
-    eat: [
-      "Complex carbohydrates: pasta, rice, oats",
-      "Bananas and dates (quick energy)",
-      "Electrolyte drinks during long sessions",
-      "Iron-rich foods: spinach, beetroot, lentils",
-      "Lean proteins for muscle repair",
-      "Coconut water post-workout",
-      "Chia seeds in water (hydration + energy)"
-    ],
-    avoid: [
-      "High-fat meals before training",
-      "Spicy foods before cardio",
-      "Dehydration (major stamina killer)",
-      "Sugary energy drinks (short crash follows)",
-      "Too much dairy before long runs",
-      "Skipping carbs (main fuel for endurance)",
-      "Alcohol (dehydrates and reduces VO2 max)"
-    ],
-    tip: "Carbs are your fuel. Never train long distances in a fasted state."
-  },
-  "Cardio Fitness": {
-    color: "#ef4444",
-    icon: "❤️",
-    eat: [
-      "Light carbs pre-workout: banana, toast",
-      "Lean proteins for recovery",
-      "Watermelon, cucumber (hydration-rich)",
-      "Low-fat yogurt",
-      "Coconut water (natural electrolytes)",
-      "Beetroot juice (improves VO2 max)",
-      "Green tea (fat metabolism)"
-    ],
-    avoid: [
-      "Heavy meals before cardio sessions",
-      "Deep-fried foods",
-      "Sugary snacks",
-      "Dehydration",
-      "Alcohol",
-      "High sodium foods (raises BP)",
-      "Carbonated drinks before cardio"
-    ],
-    tip: "Stay hydrated before, during, and after cardio. Moderate intensity for 30–45 min daily is ideal."
-  },
-  "Flexibility & Mobility": {
-    color: "#8b5cf6",
-    icon: "🧘",
-    eat: [
-      "Anti-inflammatory foods: turmeric, ginger",
-      "Omega-3 rich foods: flaxseed, walnuts, fish",
-      "Vitamin C: citrus fruits, amla, bell peppers (collagen for joints)",
-      "Calcium: milk, curd, ragi (bone health)",
-      "Magnesium: banana, dark chocolate, nuts",
-      "Plenty of water (lubricates joints)",
-      "Green leafy vegetables daily"
-    ],
-    avoid: [
-      "Processed foods (increase inflammation)",
+      "Processed junk food — empty calories",
+      "Alcohol — kills testosterone & protein synthesis",
       "Sugary drinks",
-      "Excess alcohol (dehydrates tissues)",
-      "Red meat in excess",
-      "Refined oils",
-      "Fast food",
-      "Skipping rest and recovery"
+      "Skipping meals — muscles need consistent fuel",
+      "Red meat & pork (high saturated fat)",
+      "Trans fats — biscuits, packaged snacks",
+      "Crash diets"
     ],
-    tip: "Yoga + stretching + good hydration = excellent flexibility over time."
+    tip: "Eat 5–6 small meals. Protein within 30 min post-workout is critical for muscle repair."
   },
-  "Functional Fitness": {
-    color: "#10b981",
-    icon: "⚡",
+
+  "Lean Bulk": {
+    color: "#a78bfa", icon: "📈",
     eat: [
-      "Balanced macros: protein + carbs + fats",
-      "Eggs, chicken, fish, lentils",
-      "Brown rice, quinoa, sweet potato",
-      "Colourful vegetables daily",
-      "Fruits: banana, apple, mango",
-      "Healthy fats: avocado, olive oil, nuts",
-      "Adequate hydration for joint health"
+      "Grilled chicken — calorie-controlled protein",
+      "Fish: tuna, pomfret — lean protein",
+      "Eggs — complete protein",
+      "Brown rice, oats, sweet potato",
+      "Avocado, olive oil — quality fats",
+      "Mixed nuts (small portions)",
+      "Dahi / Greek yogurt",
+      "Seasonal fruits",
+      "Whole grain roti"
     ],
     avoid: [
-      "Processed and packaged foods",
-      "Excess sugar",
+      "Dirty bulk foods — pizza, burgers, excess junk",
+      "Too much refined sugar",
+      "Red meat & processed meats",
       "Alcohol",
+      "Liquid calories in excess",
+      "Skipping cardio entirely",
+      "Trans fats"
+    ],
+    tip: "Aim for 200–300 calorie surplus only. Clean sources let you gain muscle without excessive fat."
+  },
+
+  "Fat Burn": {
+    color: "#fb923c", icon: "🔥",
+    eat: [
+      "Grilled chicken — thermogenic protein",
+      "Fish: salmon, mackerel — omega-3 boosts fat metabolism",
+      "Green tea (3 cups/day) — natural fat burner",
+      "Apple cider vinegar (diluted) before meals",
+      "Eggs for breakfast — keeps you full longer",
+      "Leafy vegetables — very low calorie",
+      "Coconut water — hydration without sugar",
+      "Cinnamon in oats — regulates blood sugar",
+      "Berries — low sugar, high antioxidants"
+    ],
+    avoid: [
+      "Refined carbs — maida, white rice, bread",
+      "Sugary drinks including packaged juices",
+      "Excess dairy fat",
+      "Red meat",
+      "Alcohol",
+      "Skipping breakfast",
+      "Late-night snacking"
+    ],
+    tip: "Combine intermittent fasting (16:8) with cardio for maximum fat burn results."
+  },
+
+  "Body Toning": {
+    color: "#34d399", icon: "✨",
+    eat: [
+      "Grilled / steamed chicken — lean protein",
+      "Fish: rohu, surmai — light protein",
+      "Egg whites",
+      "Low-fat dahi / Greek yogurt",
+      "Quinoa, oats, brown rice (measured portions)",
+      "Green vegetables — spinach, broccoli, beans",
+      "Cucumber, carrot, celery — low calorie snacks",
+      "Plenty of water — 3 L+/day"
+    ],
+    avoid: [
+      "Excess carbs — causes water retention & bloating",
+      "High-sodium packaged foods",
+      "Alcohol",
+      "Sugary drinks",
       "Fried foods",
-      "Skipping post-workout protein",
-      "Low-calorie crash diets",
-      "Energy drinks"
+      "Red meat",
+      "Excess dairy fat"
     ],
-    tip: "Functional fitness = moving well in real life. Focus on compound movements + balance."
+    tip: "Toning is fat loss + light resistance training. Protein protects your muscle while you lean down."
   },
-  "CrossFit": {
-    color: "#f43f5e",
-    icon: "🔄",
+
+  "General Fitness": {
+    color: "#38bdf8", icon: "🏃",
     eat: [
-      "High protein: chicken, eggs, fish",
-      "Paleo-friendly: vegetables, fruits, nuts",
-      "Sweet potato, yam for carb fuel",
-      "Protein shake within 30 min post-WOD",
-      "Coconut oil for healthy cooking",
-      "Berries (antioxidant recovery)",
-      "Plenty of water + electrolytes"
+      "Balanced meals: roti / rice + dal + sabzi + salad",
+      "Chicken (2–3 times/week) — good protein source",
+      "Fish (1–2 times/week) — heart-healthy",
+      "Eggs — versatile protein",
+      "Seasonal fruits & vegetables",
+      "Low-fat dahi / buttermilk",
+      "Whole grains — oats, brown rice, multigrain roti",
+      "Water — at least 2.5–3 L/day"
     ],
     avoid: [
-      "Grains and gluten (Paleo approach)",
-      "Dairy (for strict CrossFitters)",
-      "Sugar and sweets",
+      "Ultra-processed packaged foods",
+      "Excess sugar",
+      "Sugary drinks",
+      "Red meat in excess",
+      "Fried snacks daily",
       "Alcohol",
-      "Processed foods",
-      "Vegetable oils (canola, soybean)",
-      "Legumes in some protocols"
+      "Skipping any major meal"
     ],
-    tip: "WODs are intense — eat a proper meal 2 hrs before, and recover with protein immediately after."
+    tip: "Eat like your grandparents did — whole foods, home-cooked, balanced. Simple wins."
   },
-  "HIIT Training": {
-    color: "#fb923c",
-    icon: "⏱️",
+
+  "Strength Training": {
+    color: "#fbbf24", icon: "🏋️",
     eat: [
-      "Banana or dates 30 min before HIIT",
-      "Lean protein post-session: eggs, chicken",
-      "Complex carbs: oats, whole wheat",
-      "Berries for antioxidant recovery",
-      "Greek yogurt with honey (recovery meal)",
-      "Coconut water for electrolytes",
-      "Plenty of water (HIIT = heavy sweat)"
+      "High-protein chicken — breast or thigh",
+      "Fish: tuna, salmon — protein + omega-3 for joints",
+      "Eggs (4–6/day) — complete amino acids",
+      "Paneer, low-fat dairy",
+      "Rice + roti — carbs to fuel heavy lifts",
+      "Rajma, chole, lentils — plant protein",
+      "Creatine (supplement) — proven strength aid",
+      "Banana pre-workout — quick energy",
+      "Milk + protein shake post-workout"
+    ],
+    avoid: [
+      "Alcohol — impairs recovery severely",
+      "Sugary drinks pre-workout (causes crash)",
+      "Insufficient calories — can't build strength in deficit",
+      "Processed meats — sausage, salami",
+      "Red meat (stick to chicken & fish)",
+      "Skipping post-workout nutrition",
+      "Low-carb diets during heavy training phases"
+    ],
+    tip: "Progressive overload + adequate protein = strength gains. Eat enough to lift heavy."
+  },
+
+  "Powerlifting": {
+    color: "#ef4444", icon: "🏆",
+    eat: [
+      "Chicken (large portions) — primary protein",
+      "Fish: tuna, salmon — secondary protein + anti-inflammatory",
+      "Eggs — 6–8/day for elite athletes",
+      "Rice, roti, pasta — high carbs to fuel max lifts",
+      "Potatoes, sweet potatoes — energy dense",
+      "Dahi, paneer, milk",
+      "Nuts, peanut butter — calorie dense healthy fats",
+      "Creatine monohydrate — essential for powerlifters"
+    ],
+    avoid: [
+      "Alcohol — kills strength and recovery",
+      "Junk food on meet day",
+      "Skipping carbs — glycogen needed for 1RM attempts",
+      "Red meat regularly (stick to chicken/fish)",
+      "Crash dieting in-season",
+      "Sugary drinks before training",
+      "Dehydration"
+    ],
+    tip: "Powerlifting demands high calories and high protein. Eat to perform — aesthetics come later."
+  },
+
+  "Endurance & Stamina": {
+    color: "#6ee7b7", icon: "🌬️",
+    eat: [
+      "Complex carbs: brown rice, oats, whole grain roti — primary fuel",
+      "Chicken — lean protein for recovery",
+      "Fish: mackerel, tuna — omega-3 reduces inflammation",
+      "Bananas — quick energy during long sessions",
+      "Dates & dry fruits — natural energy",
+      "Coconut water — electrolyte replacement",
+      "Beetroot juice pre-session — improves VO2 max",
+      "Dahi / curd — recovery protein",
+      "Plenty of water — 4 L+ on training days"
+    ],
+    avoid: [
+      "Heavy high-fat meals before long runs",
+      "Alcohol — reduces aerobic capacity",
+      "Sugary drinks (cause mid-run crash)",
+      "Dehydration — performance drops rapidly",
+      "Red meat — hard to digest",
+      "Fried foods",
+      "Low-carb diets during endurance training"
+    ],
+    tip: "Carbohydrates are your engine. Don't fear them — fuel correctly and go further."
+  },
+
+  "Cardio Fitness": {
+    color: "#f43f5e", icon: "❤️",
+    eat: [
+      "Oats with fruits — sustained energy pre-cardio",
+      "Boiled chicken / egg whites — light post-cardio protein",
+      "Fish — heart-healthy, low-calorie protein",
+      "Fruits: banana, apple, watermelon",
+      "Coconut water — natural electrolytes",
+      "Green tea — improves fat oxidation",
+      "Salads + soups — low calorie, filling",
+      "Low-fat dahi"
+    ],
+    avoid: [
+      "Heavy meals before cardio (causes cramps)",
+      "Sugary drinks — leads to energy crash",
+      "Red meat — hard to digest before cardio",
+      "Excess caffeine",
+      "Alcohol",
+      "Fried snacks",
+      "Skipping post-cardio protein"
+    ],
+    tip: "Fasted cardio in the morning (with water only) can accelerate fat loss for some people."
+  },
+
+  "Flexibility & Mobility": {
+    color: "#c084fc", icon: "🧘",
+    eat: [
+      "Anti-inflammatory foods: turmeric, ginger, amla",
+      "Omega-3: fish (salmon, sardines), flaxseed, walnuts",
+      "Chicken bone broth — collagen for joints",
+      "Citrus fruits — vitamin C for connective tissue",
+      "Leafy greens: spinach, methi — magnesium for muscles",
+      "Banana — potassium reduces cramping",
+      "Pumpkin seeds — zinc + magnesium",
+      "Water — joint lubrication",
+      "Green tea — anti-inflammatory"
+    ],
+    avoid: [
+      "Processed foods — increase inflammation",
+      "Excess sugar — degrades collagen",
+      "Alcohol — dehydrates and worsens stiffness",
+      "Fried foods — pro-inflammatory",
+      "Red meat — increases inflammation",
+      "Carbonated drinks — calcium leaching",
+      "Excess caffeine"
+    ],
+    tip: "Hydration and anti-inflammatory diet dramatically improve joint range of motion over time."
+  },
+
+  "Functional Fitness": {
+    color: "#facc15", icon: "⚡",
+    eat: [
+      "Balanced protein: chicken, fish, eggs — for muscle function",
+      "Complex carbs: rice, oats, sweet potato",
+      "Vegetables across colours — micronutrients for daily function",
+      "Lentils, dal — plant protein + fibre",
+      "Fruits — antioxidants for recovery",
+      "Nuts and seeds — healthy fats",
+      "Dahi, buttermilk — gut health",
+      "Water 3 L+"
+    ],
+    avoid: [
+      "Processed and junk foods",
+      "Excess salt and sugar",
+      "Alcohol",
+      "Red meat regularly",
+      "Skipping meals — affects energy for daily tasks",
+      "Carbonated drinks",
+      "Low-nutrient packaged snacks"
+    ],
+    tip: "Functional fitness is about performing real-life movements. Eat to have consistent energy all day."
+  },
+
+  "CrossFit": {
+    color: "#f97316", icon: "🔄",
+    eat: [
+      "Chicken — primary protein source",
+      "Fish: tuna, salmon — protein + recovery support",
+      "Eggs — quick preparation, complete protein",
+      "Sweet potato, rice — fast fuel for WODs",
+      "Banana pre-WOD — instant energy",
+      "Dahi / Greek yogurt post-WOD",
+      "Nuts and nut butter",
+      "Leafy greens and vegetables",
+      "Coconut water for electrolytes"
+    ],
+    avoid: [
+      "Alcohol — destroys CrossFit recovery",
+      "Sugary drinks",
+      "Heavy meals within 90 min of WOD",
+      "Red meat before training",
+      "Trans fats and processed snacks",
+      "Low-carb diets (CrossFit is high intensity = needs carbs)",
+      "Dehydration"
+    ],
+    tip: "CrossFit demands both carbs AND protein. Time nutrition around your WOD for best performance."
+  },
+
+  "HIIT Training": {
+    color: "#e879f9", icon: "⏱️",
+    eat: [
+      "Light chicken or egg pre-HIIT (1 hr before)",
+      "Fish post-HIIT for anti-inflammatory recovery",
+      "Banana or dates pre-session — quick carbs",
+      "Oats pre-session for sustained energy",
+      "Watermelon post-session — hydration + natural sugars",
+      "Dahi / low-fat yogurt post-HIIT",
+      "Protein shake with water post-session"
     ],
     avoid: [
       "Large meals 1 hr before HIIT",
-      "High-fat meals pre-workout (slows digestion)",
-      "Sugary snacks (causes crash mid-session)",
-      "Alcohol (impairs recovery severely)",
+      "High-fat meals pre-workout — slows digestion",
+      "Sugary snacks — causes crash mid-session",
+      "Alcohol — impairs recovery severely",
       "Carbonated drinks",
       "Dehydration",
-      "Fried or greasy foods"
+      "Red meat or heavy protein before training"
     ],
     tip: "HIIT burns fat for 24–48 hrs after session. Eat clean to maximise this afterburn effect."
   },
+
   "Calisthenics": {
-    color: "#06b6d4",
-    icon: "🤸",
+    color: "#06b6d4", icon: "🤸",
     eat: [
-      "Moderate high protein: eggs, chicken, paneer",
-      "Carbs for bodyweight movements: rice, oats",
-      "Fruits for quick energy",
+      "Chicken (moderate) — keeps bodyweight lean while building strength",
+      "Fish: rohu, tuna — light protein, supports skill work",
+      "Eggs — quick protein, easy to track",
+      "Rice, oats — carbs for bodyweight movements",
+      "Fruits for quick energy pre-session",
+      "Lentils, legumes — plant protein",
       "Nuts and seeds for healthy fats",
-      "Lentils and legumes",
-      "Whole grains",
       "Green vegetables and salads"
     ],
     avoid: [
       "Excess body weight from high-fat diet",
-      "Heavy meals before training",
+      "Heavy meals before training (affects skill movements)",
       "Junk food",
       "Excess alcohol",
-      "Low-protein diets (muscles need repair)",
+      "Red meat in excess — adds unnecessary weight",
       "Carbonated drinks",
       "High-sodium packaged snacks"
     ],
     tip: "Calisthenics favours a lean physique. Keep body weight in check for easier muscle-ups!"
   },
+
   "Stress Relief": {
-    color: "#6366f1",
-    icon: "🧠",
+    color: "#6366f1", icon: "🧠",
     eat: [
       "Dark chocolate (70%+ cocoa) — reduces cortisol",
       "Chamomile or ashwagandha tea",
-      "Omega-3 rich: walnuts, flaxseed, fish",
-      "Bananas (serotonin boost)",
+      "Walnuts, flaxseed — omega-3 for brain health",
+      "Fish: salmon — omega-3 reduces anxiety",
+      "Bananas — serotonin boost",
       "Turmeric milk (haldi doodh) before bed",
-      "Fermented foods: curd, idli (gut-brain connection)",
-      "Magnesium-rich foods: leafy greens, nuts"
+      "Fermented foods: dahi, idli — gut-brain axis",
+      "Leafy greens, pumpkin seeds — magnesium"
     ],
     avoid: [
-      "Excess caffeine (increases anxiety)",
-      "Alcohol (depressant, worsens stress long-term)",
-      "Sugary foods (blood sugar spikes = mood swings)",
+      "Excess caffeine — increases anxiety",
+      "Alcohol — depressant, worsens stress long-term",
+      "Sugary foods — blood sugar spikes = mood swings",
       "Processed and junk food",
-      "Skipping meals (drops blood sugar = irritability)",
+      "Skipping meals — drops blood sugar = irritability",
       "Energy drinks",
-      "Excess sodium (raises cortisol)"
+      "Excess sodium — raises cortisol"
     ],
     tip: "Combine yoga, meditation, and balanced meals. Sleep 7–8 hours for stress recovery."
   },
+
   "Posture Correction": {
-    color: "#84cc16",
-    icon: "🦴",
+    color: "#84cc16", icon: "🦴",
     eat: [
-      "Calcium: milk, curd, ragi, sesame seeds",
-      "Vitamin D: sunlight + fortified foods, fatty fish",
+      "Calcium: milk, dahi, ragi, sesame seeds",
+      "Vitamin D: sunlight exposure + fish (sardines, salmon)",
       "Magnesium: banana, pumpkin seeds, spinach",
-      "Collagen: bone broth, amla, citrus fruits",
+      "Chicken bone broth — collagen for spinal discs",
+      "Amla, citrus fruits — vitamin C for connective tissue",
       "Anti-inflammatory: turmeric, ginger",
-      "Potassium: banana, potato, coconut water",
-      "Water for spinal disc health"
+      "Potassium: banana, coconut water",
+      "Water — spinal disc hydration"
     ],
     avoid: [
-      "Processed foods (trigger inflammation)",
-      "Carbonated drinks (leach calcium from bones)",
+      "Processed foods — trigger inflammation",
+      "Carbonated drinks — leach calcium from bones",
       "Excess alcohol",
-      "High-sugar diet (weakens connective tissue)",
-      "Too much caffeine (affects calcium absorption)",
-      "Smoking",
+      "High-sugar diet — weakens connective tissue",
+      "Too much caffeine — affects calcium absorption",
+      "Red meat regularly",
       "Low-calcium diet"
     ],
     tip: "Strengthen your core and back muscles with targeted exercises alongside a bone-health diet."
   },
+
   "Post-Injury Rehab": {
-    color: "#f472b6",
-    icon: "🩺",
+    color: "#f472b6", icon: "🩺",
     eat: [
-      "High protein for tissue repair: eggs, chicken, fish",
-      "Vitamin C: amla, citrus, guava (collagen synthesis)",
-      "Zinc: pumpkin seeds, chickpeas, meat",
-      "Omega-3: fish oil, flaxseed (reduces inflammation)",
-      "Turmeric + black pepper (anti-inflammatory)",
-      "Bone broth (collagen and minerals)",
-      "Adequate calories to support healing"
+      "High protein: chicken, fish — tissue repair",
+      "Amla, citrus, guava — vitamin C for collagen synthesis",
+      "Pumpkin seeds, chickpeas — zinc for healing",
+      "Salmon, fish oil, flaxseed — omega-3 reduces inflammation",
+      "Turmeric + black pepper — natural anti-inflammatory",
+      "Chicken bone broth — collagen + minerals",
+      "Eggs — complete amino acids",
+      "Adequate total calories — body needs fuel to heal"
     ],
     avoid: [
-      "Alcohol (severely impairs healing)",
-      "Sugary foods ",
+      "Alcohol — severely impairs healing",
+      "Sugary foods — slow tissue repair",
       "Processed and fried foods",
-      "Excess sodium ",
+      "Excess sodium — increases swelling",
       "Crash diets / calorie restriction during rehab",
-      "Smoking",
-      "NSAIDs overuse (ask your doctor)"
+      "Red meat — inflammatory",
+      "NSAIDs overuse — consult your doctor"
     ],
     tip: "Recovery nutrition is as important as physiotherapy. Never rush back to training."
   },
+
   "Sports Performance": {
-    color: "#fbbf24",
-    icon: "⚽",
+    color: "#fbbf24", icon: "⚽",
     eat: [
-      "High carb on game days: pasta, rice, roti",
-      "Lean protein daily: chicken, fish, eggs",
-      "Creatine (for explosive sports)",
-      "Beetroot juice pre-game (improves endurance)",
-      "Banana + peanut butter (pre-match snack)",
+      "High carb on game days: rice, roti, pasta",
+      "Chicken — lean protein for daily recovery",
+      "Fish: salmon, tuna — protein + omega-3 for endurance",
+      "Beetroot juice pre-game — improves endurance",
+      "Banana + peanut butter — pre-match snack",
       "Electrolytes during match: coconut water, ORS",
-      "Recovery shake post-game: protein + carbs"
+      "Eggs — quick protein post-game",
+      "Recovery shake: protein + carbs within 30 min post-game"
     ],
     avoid: [
       "Heavy meals 2–3 hrs before competition",
@@ -655,7 +725,207 @@ const dietPlans = {
   }
 };
 
-// ── DIET MODAL OPEN ───────────────────────────
+/* ════════════════════════════════════════════════════════════════
+   HEALTH MODIFIERS
+   Extra items appended / flagged based on health profile
+════════════════════════════════════════════════════════════════ */
+
+// Items diabetics MUST avoid (appended to avoid list with red highlight)
+const diabeticAvoid = [
+  "🚨 White rice in large quantities — spikes blood sugar rapidly",
+  "🚨 Maida / refined flour — high glycemic index",
+  "🚨 Fruit juices & sugary drinks — immediate glucose spike",
+  "🚨 Sweets, mithai, chocolates, ice cream",
+  "🚨 Potatoes in excess (especially fried)",
+  "🚨 Alcohol — unpredictable blood glucose effects",
+  "🚨 Packaged breakfast cereals — hidden sugar",
+  "🚨 Full-fat dairy in excess (Type 2)"
+];
+
+// Items beneficial for diabetics (appended to eat list with purple highlight)
+const diabeticEat = [
+  "🩺 Karela (bitter gourd) — natural blood sugar regulation",
+  "🩺 Methi seeds (fenugreek) soaked in water — lowers glucose",
+  "🩺 Cinnamon in oats or tea — improves insulin sensitivity",
+  "🩺 Low-GI grains: barley, millets, oats — preferred over white rice",
+  "🩺 Jamun (Indian blackberry) — known to help manage blood sugar",
+  "🩺 Fish (grilled) — protein without carbs, heart-friendly",
+  "🩺 Leafy greens in every meal — minimal glucose impact"
+];
+
+// Items overweight/obese MUST avoid (appended to avoid list)
+const overweightAvoid = [
+  "⚠️ High-calorie dense foods: fried snacks, pakoda, samosa",
+  "⚠️ Liquid calories: lassi with sugar, sweetened chai, milkshakes",
+  "⚠️ Excess ghee, butter, oil in cooking",
+  "⚠️ Large portion sizes — even of healthy foods",
+  "⚠️ Late-night eating — promotes fat storage",
+  "⚠️ Refined carbs: white bread, puri, bhatura",
+  "⚠️ Fast food and restaurant meals frequently"
+];
+
+// Items beneficial for overweight (appended to eat list)
+const overweightEat = [
+  "⚖️ High-volume low-calorie foods: cucumber, lettuce, tomato",
+  "⚖️ Fibre-rich: oats, chia seeds, psyllium husk (isabgol) — keeps full",
+  "⚖️ Warm water with lemon in the morning — metabolism boost",
+  "⚖️ Green tea 2–3 cups/day — fat oxidation support",
+  "⚖️ Boiled / grilled chicken — maximum protein, minimum fat",
+  "⚖️ Eat in smaller plates — natural portion control",
+  "⚖️ Mindful eating — eat slowly, chew 20 times"
+];
+
+// Combined both conditions
+const dualConditionEat = [
+  "🟣 Low-GI + low-calorie: karela, lauki, tinda, turai",
+  "🟣 Grilled fish — ideal for both conditions (low fat, zero carbs)",
+  "🟣 Boiled chicken (no skin) — pure lean protein",
+  "🟣 Millets: jowar, bajra, ragi — low GI, filling, nutritious",
+  "🟣 Cinnamon + fenugreek water daily — blood sugar + weight control",
+  "🟣 Raw vegetable salads before main meals — reduces glycemic load",
+  "🟣 Intermittent fasting (16:8) with doctor's approval — dual benefit"
+];
+
+const dualConditionAvoid = [
+  "🚫 All refined carbs — spike both glucose and weight",
+  "🚫 All sugary drinks, including packaged 'diet' drinks",
+  "🚫 High-fat dairy — cream, full-fat paneer, butter",
+  "🚫 Fruit juices — high sugar even from natural fruits",
+  "🚫 Alcohol — dangerous combination with both conditions",
+  "🚫 Restaurant / takeaway food — hidden sugar, fat, salt",
+  "🚫 Skipping meals — worsens blood sugar swings"
+];
+
+/* ════════════════════════════════════════════════════════════════
+   HEALTH WARNING TEXT BUILDER
+════════════════════════════════════════════════════════════════ */
+function buildHealthWarning(member) {
+  const db = member.diabetesStatus || "non-diabetic";
+  const wt = member.weightStatus   || "normal-weight";
+
+  const isDiabetic   = db !== "non-diabetic";
+  const isOverweight = wt === "overweight" || wt === "obese";
+  const isUnder      = wt === "underweight";
+
+  let warnings = [];
+
+  if (isDiabetic && isOverweight) {
+    warnings.push({
+      cls: "multi-warn",
+      icon: "🟣",
+      title: "Dual Health Alert: Diabetes + " + (wt === "obese" ? "Obesity" : "Overweight"),
+      lines: [
+        "This member has BOTH diabetes and weight concerns. Their diet requires extra care.",
+        "Focus heavily on low-glycemic index AND low-calorie foods simultaneously.",
+        "Strongly advise consulting a registered dietitian for a personalised plan.",
+        "Below you'll find special combined recommendations marked in purple 🟣."
+      ]
+    });
+  } else if (isDiabetic) {
+    const typeLabel = db === "pre-diabetic" ? "Pre-Diabetic" : (db === "diabetic-type1" ? "Type 1 Diabetic" : "Type 2 Diabetic");
+    warnings.push({
+      cls: "diabetes-warn",
+      icon: "🩸",
+      title: `Diabetes Alert: ${typeLabel}`,
+      lines: [
+        "Standard diet plans may not suit this member. High-glycemic foods must be avoided.",
+        "Prioritise low-GI carbohydrates and consistent meal timing to manage blood sugar.",
+        db === "pre-diabetic"
+          ? "Pre-diabetes is reversible with diet and exercise — this is a crucial window!"
+          : "Blood glucose must be monitored. Diet changes should complement medical treatment.",
+        "Diabetes-specific items are highlighted in the list below (🩺 teal markers)."
+      ]
+    });
+  }
+
+  if (isOverweight && !isDiabetic) {
+    warnings.push({
+      cls: "weight-warn",
+      icon: "⚖️",
+      title: wt === "obese" ? "Obesity Health Alert" : "Overweight Health Alert",
+      lines: [
+        "Many foods that are 'healthy' for a normal-weight person are still too calorie-dense here.",
+        "Even chicken breast portions and rice servings should be measured carefully.",
+        "Focus on high-volume, low-calorie, high-fibre foods to create a sustainable deficit.",
+        "Overweight-specific items are highlighted in the list below (⚖️ orange markers)."
+      ]
+    });
+  }
+
+  if (isUnder) {
+    warnings.push({
+      cls: "weight-warn",
+      icon: "📉",
+      title: "Underweight Health Note",
+      lines: [
+        "This member needs a calorie surplus to reach a healthy weight.",
+        "Increase portion sizes of complex carbs and healthy fats gradually.",
+        "Focus on nutrient-dense foods — not junk food — for healthy weight gain.",
+        "Consult a doctor to rule out any underlying medical cause of low weight."
+      ]
+    });
+  }
+
+  if (warnings.length === 0) return "";
+
+  return warnings.map(w => `
+    <div class="health-warning ${w.cls}">
+      <strong>${w.icon} ${w.title}</strong>
+      ${w.lines.map(l => `• ${l}`).join("<br>")}
+    </div>
+  `).join("");
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BUILD MODIFIED EAT / AVOID LISTS BASED ON HEALTH PROFILE
+════════════════════════════════════════════════════════════════ */
+function buildHealthAwareLists(plan, member) {
+  const db = member.diabetesStatus || "non-diabetic";
+  const wt = member.weightStatus   || "normal-weight";
+
+  const isDiabetic   = db !== "non-diabetic";
+  const isOverweight = wt === "overweight" || wt === "obese";
+
+  let eatList   = [...plan.eat];
+  let avoidList = [...plan.avoid];
+
+  if (isDiabetic && isOverweight) {
+    // Dual condition — show combined extra lists
+    eatList   = eatList.concat(dualConditionEat);
+    avoidList = avoidList.concat(dualConditionAvoid);
+  } else if (isDiabetic) {
+    eatList   = eatList.concat(diabeticEat);
+    avoidList = avoidList.concat(diabeticAvoid);
+  } else if (isOverweight) {
+    eatList   = eatList.concat(overweightEat);
+    avoidList = avoidList.concat(overweightAvoid);
+  }
+
+  // Determine CSS class for extra items
+  const extraEatClass   = (isDiabetic && isOverweight) ? "health-extra" :
+                          isDiabetic ? "health-extra" :
+                          isOverweight ? "health-extra" : "";
+  const extraAvoidClass = (isDiabetic || isOverweight) ? "health-danger" : "";
+
+  const baseEatCount   = plan.eat.length;
+  const baseAvoidCount = plan.avoid.length;
+
+  const eatHTML = eatList.map((item, i) => {
+    const cls = i >= baseEatCount ? `class="${extraEatClass}"` : "";
+    return `<li ${cls}>✅ ${item}</li>`;
+  }).join("");
+
+  const avoidHTML = avoidList.map((item, i) => {
+    const cls = i >= baseAvoidCount ? `class="${extraAvoidClass}"` : "";
+    return `<li ${cls}>❌ ${item}</li>`;
+  }).join("");
+
+  return { eatHTML, avoidHTML };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DIET MODAL
+════════════════════════════════════════════════════════════════ */
 function openDietModal(index) {
   const m    = members[index];
   const plan = dietPlans[m.goal];
@@ -665,8 +935,25 @@ function openDietModal(index) {
     return;
   }
 
-  const eatItems  = plan.eat.map(i  => `<li>✅ ${i}</li>`).join("");
-  const avoidItems = plan.avoid.map(i => `<li>❌ ${i}</li>`).join("");
+  const { eatHTML, avoidHTML } = buildHealthAwareLists(plan, m);
+  const healthWarning           = buildHealthWarning(m);
+
+  // Health tag labels for modal header
+  const dbLabels = {
+    "non-diabetic"   : { label: "✅ Non-Diabetic",   cls: "pill-nondiabetic" },
+    "pre-diabetic"   : { label: "⚠️ Pre-Diabetic",   cls: "pill-prediabetic" },
+    "diabetic-type1" : { label: "💉 Diabetic T1",    cls: "pill-diabetic" },
+    "diabetic-type2" : { label: "🩸 Diabetic T2",    cls: "pill-diabetic" }
+  };
+  const wtLabels = {
+    "normal-weight" : { label: "✅ Normal Weight",  cls: "pill-normal" },
+    "underweight"   : { label: "📉 Underweight",    cls: "pill-under" },
+    "overweight"    : { label: "⚖️ Overweight",     cls: "pill-overweight" },
+    "obese"         : { label: "🔴 Obese",           cls: "pill-obese" }
+  };
+
+  const dbTag = dbLabels[m.diabetesStatus] || dbLabels["non-diabetic"];
+  const wtTag = wtLabels[m.weightStatus]   || wtLabels["normal-weight"];
 
   document.getElementById("modalContent").innerHTML = `
     <div class="modal-header" style="border-left: 5px solid ${plan.color}">
@@ -674,6 +961,10 @@ function openDietModal(index) {
       <div>
         <h2 class="modal-title">${esc(m.name)}'s Diet Plan</h2>
         <p class="modal-goal-name" style="color:${plan.color}">Goal: ${esc(m.goal)}</p>
+        <div class="modal-health-tags">
+          <span class="health-pill ${dbTag.cls} modal-health-tag">${dbTag.label}</span>
+          <span class="health-pill ${wtTag.cls} modal-health-tag">${wtTag.label}</span>
+        </div>
       </div>
     </div>
 
@@ -681,14 +972,16 @@ function openDietModal(index) {
       💡 <strong>Pro Tip:</strong> ${plan.tip}
     </div>
 
+    ${healthWarning}
+
     <div class="diet-columns">
       <div class="diet-col eat-col">
         <h3>🥗 What to EAT</h3>
-        <ul>${eatItems}</ul>
+        <ul>${eatHTML}</ul>
       </div>
       <div class="diet-col avoid-col">
         <h3>🚫 What to AVOID</h3>
-        <ul>${avoidItems}</ul>
+        <ul>${avoidHTML}</ul>
       </div>
     </div>
   `;
@@ -705,55 +998,5 @@ function closeDietModalBtn() {
   document.body.style.overflow = "";
 }
 
-// ── EXTEND MODAL ──────────────────────────────
-let extendTargetIndex = null;
-
-function openExtendModal(index) {
-  extendTargetIndex = index;
-  const m = members[index];
-  document.getElementById("extendMemberName").innerText  = "👤 " + m.name;
-  document.getElementById("extendCurrentPlan").innerText = m.membership;
-  document.getElementById("extendModal").classList.add("active");
-  document.body.style.overflow = "hidden";
-}
-
-function closeExtendModal(e) {
-  if (e.target === document.getElementById("extendModal")) closeExtendModalBtn();
-}
-function closeExtendModalBtn() {
-  document.getElementById("extendModal").classList.remove("active");
-  document.body.style.overflow = "";
-  extendTargetIndex = null;
-}
-
-function confirmExtend() {
-  if (extendTargetIndex === null) return;
-  const addOn = document.getElementById("extendSelect").value;
-  const m = members[extendTargetIndex];
-
-  // Append to existing plan
-  const planMap = {
-    "1 Month": 1, "3 Months": 3, "6 Months": 6,
-    "1 Year": 12, "2 Years": 24, "3 Years": 36, "4 Years": 48
-  };
-  const existing = planMap[m.membership] || 0;
-  const adding   = planMap[addOn] || 0;
-  const total    = existing + adding;
-
-  let newPlan = "";
-  if (total <= 1)       newPlan = "1 Month";
-  else if (total <= 3)  newPlan = "3 Months";
-  else if (total <= 6)  newPlan = "6 Months";
-  else if (total <= 12) newPlan = "1 Year";
-  else if (total <= 24) newPlan = "2 Years";
-  else if (total <= 36) newPlan = "3 Years";
-  else                  newPlan = "4 Years";
-
-  m.membership = newPlan;
-  saveData();
-  displayMembers(getCurrentList());
-  closeExtendModalBtn();
-  showAlert(`✅ ${m.name}'s plan extended! New plan: ${newPlan}`, "success");
-}
-
+// ── INIT ──────────────────────────────────────
 displayMembers();

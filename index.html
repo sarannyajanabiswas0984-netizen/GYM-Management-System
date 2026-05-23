@@ -23,24 +23,22 @@
 
   <div class="container">
 
-    <!-- DASHBOARD -->
     <div class="dashboard">
       <div class="card"><h3>Total Members</h3><h2 id="totalMembers">0</h2></div>
       <div class="card"><h3>Active Now</h3><h2 id="activeMembers">0</h2></div>
       <div class="card"><h3>Plans Enrolled</h3><h2 id="activePlans">0</h2></div>
     </div>
 
-    <!-- ADD MEMBER FORM -->
     <form id="memberForm" novalidate>
       <h3 class="form-title">➕ Add New Member</h3>
       <div class="form-grid">
 
         <input type="text" id="name" placeholder="Full Name" required autocomplete="off" />
 
-        <input type="number" id="age" placeholder="Your Age" min="1" max="100" required />
+        <input type="number" id="age" placeholder="Age (17–100)" min="17" max="100" required />
 
         <div class="input-with-label">
-          <label for="joinDate" class="field-label">📅 Joining Date <span class="label-note"></span></label>
+          <label for="joinDate" class="field-label">📅 Joining Date</label>
           <input type="date" id="joinDate" required />
         </div>
 
@@ -54,6 +52,7 @@
             <option value="Fat Burn">🔥 Fat Burn</option>
             <option value="Body Toning">✨ Body Toning</option>
           </optgroup>
+          <optgroup label="🏃 Training Style">
             <option value="General Fitness">🏃 General Fitness</option>
             <option value="Strength Training">🏋️ Strength Training</option>
             <option value="Powerlifting">🏆 Powerlifting</option>
@@ -65,6 +64,7 @@
             <option value="HIIT Training">⏱️ HIIT Training</option>
             <option value="Calisthenics">🤸 Calisthenics</option>
           </optgroup>
+          <optgroup label="🩺 Wellness">
             <option value="Stress Relief">🧠 Stress Relief</option>
             <option value="Posture Correction">🦴 Posture Correction</option>
             <option value="Post-Injury Rehab">🩺 Post-Injury Rehab</option>
@@ -83,17 +83,36 @@
           <option value="4 Years">📆 4 Years</option>
         </select>
 
+        <div class="health-section-header">
+          <span>🩺 Health Profile</span>
+          <span class="health-sub">Helps personalise diet recommendations</span>
+        </div>
+
+        <select id="diabetesStatus" required>
+          <option value="">— Diabetes Status —</option>
+          <option value="non-diabetic">✅ Non-Diabetic</option>
+          <option value="pre-diabetic">⚠️ Pre-Diabetic</option>
+          <option value="diabetic-type1">💉 Diabetic – Type 1</option>
+          <option value="diabetic-type2">🩸 Diabetic – Type 2</option>
+        </select>
+
+        <select id="weightStatus" required>
+          <option value="">— Weight Status —</option>
+          <option value="normal-weight">✅ Normal Weight</option>
+          <option value="underweight">📉 Underweight</option>
+          <option value="overweight">⚖️ Overweight</option>
+          <option value="obese">🔴 Obese</option>
+        </select>
+
         <button type="submit" class="add">➕ Add Member</button>
 
       </div>
     </form>
 
-    <!-- SEARCH -->
     <div class="search-bar">
       <input type="text" id="search" placeholder="🔍 Search member by name..." autocomplete="off" />
     </div>
 
-    <!-- TABLE -->
     <div class="table-container">
       <table>
         <thead>
@@ -103,6 +122,7 @@
             <th>Age</th>
             <th>Goal</th>
             <th>Plan</th>
+            <th>Health</th>
             <th>Joining Date</th>
             <th>Check In</th>
             <th>Check Out</th>
@@ -118,7 +138,6 @@
 
   </div>
 
-  <!-- DIET MODAL -->
   <div id="dietModal" class="modal-overlay" onclick="closeDietModal(event)">
     <div class="modal-box">
       <button class="modal-close" onclick="closeDietModalBtn()">✕</button>

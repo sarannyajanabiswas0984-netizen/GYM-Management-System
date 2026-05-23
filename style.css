@@ -1,4 +1,3 @@
-
 *, *::before, *::after {
   margin: 0; padding: 0; box-sizing: border-box;
 }
@@ -137,9 +136,27 @@ form {
   font-size: 12px; font-weight: 600;
   color: #f59e0b; letter-spacing: 0.3px;
 }
-.label-note {
-  font-weight: 400; font-style: italic;
-  color: #ef4444; font-size: 11px;
+
+/* ── HEALTH SECTION HEADER ──────────────────── */
+.health-section-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(0,255,204,0.06);
+  border: 1px solid rgba(0,255,204,0.2);
+  font-size: 14px;
+  font-weight: 700;
+  color: #00ffcc;
+  letter-spacing: 0.5px;
+  margin-top: 6px;
+}
+.health-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: #64748b;
 }
 
 input, select {
@@ -173,7 +190,6 @@ button:active { transform: translateY(0); }
 .checkout { background: linear-gradient(135deg,#f59e0b,#d97706); color: white; width: 100%; margin-top: 6px; }
 .delete   { background: linear-gradient(135deg,#ef4444,#dc2626); color: white; width: 100%; }
 .viewbtn  { background: linear-gradient(135deg,#8b5cf6,#6d28d9); color: white; width: 100%; }
-.extendbtn { background: linear-gradient(135deg,#06b6d4,#0891b2); color: white; width: 100%; }
 
 /* ── SEARCH ─────────────────────────────────── */
 .search-bar { margin-bottom: 16px; }
@@ -207,6 +223,24 @@ tbody tr:last-child td { border-bottom: none; }
   color: #93c5fd; padding: 4px 10px;
   border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap;
 }
+.health-badge {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+.health-pill {
+  padding: 3px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; white-space: nowrap;
+}
+.pill-diabetic    { background: rgba(239,68,68,0.2);   border: 1px solid #ef4444;  color: #fca5a5; }
+.pill-prediabetic { background: rgba(245,158,11,0.2);  border: 1px solid #f59e0b;  color: #fcd34d; }
+.pill-nondiabetic { background: rgba(34,197,94,0.2);   border: 1px solid #22c55e;  color: #86efac; }
+.pill-overweight  { background: rgba(251,146,60,0.2);  border: 1px solid #fb923c;  color: #fdba74; }
+.pill-obese       { background: rgba(239,68,68,0.2);   border: 1px solid #ef4444;  color: #fca5a5; }
+.pill-normal      { background: rgba(34,197,94,0.2);   border: 1px solid #22c55e;  color: #86efac; }
+.pill-under       { background: rgba(96,165,250,0.2);  border: 1px solid #60a5fa;  color: #bfdbfe; }
+
 .time-label { font-size: 11px; color: #64748b; margin-top: 5px; }
 .duration-tag {
   background: rgba(0,255,204,0.12); color: #00ffcc;
@@ -221,7 +255,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 /* ══════════════════════════════════════════════
-   MODALS
+   DIET MODAL
 ══════════════════════════════════════════════ */
 .modal-overlay {
   display: none;
@@ -242,13 +276,12 @@ tbody tr:last-child td { border-bottom: none; }
   border-radius: 20px;
   padding: 32px;
   width: 100%;
-  max-width: 860px;
+  max-width: 920px;
   position: relative;
   animation: modalIn 0.3s ease;
-  max-height: 90vh;
+  max-height: 92vh;
   overflow-y: auto;
 }
-.modal-small { max-width: 440px; }
 
 @keyframes modalIn {
   from { opacity:0; transform:scale(0.93) translateY(20px); }
@@ -265,24 +298,56 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .modal-close:hover { background: rgba(255,255,255,0.2); transform: none; }
 
-/* Diet modal header */
 .modal-header {
   display: flex; align-items: center; gap: 18px;
   padding: 16px 20px; border-radius: 12px;
   background: rgba(255,255,255,0.04);
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 .modal-goal-icon { font-size: 46px; }
 .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: #f1f5f9; }
 .modal-goal-name { font-size: 14px; font-weight: 600; margin-top: 4px; }
+
+/* Health tags inside modal header */
+.modal-health-tags {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-top: 8px;
+}
+.modal-health-tag {
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px;
+}
 
 .diet-tip {
   background: rgba(245,158,11,0.12);
   border: 1px solid rgba(245,158,11,0.3);
   border-radius: 10px; padding: 14px 18px;
   color: #fcd34d; font-size: 14px;
-  margin-bottom: 24px; line-height: 1.6;
+  margin-bottom: 16px; line-height: 1.6;
 }
+
+/* Health warning box */
+.health-warning {
+  border-radius: 10px; padding: 14px 18px;
+  font-size: 13px; line-height: 1.7;
+  margin-bottom: 16px;
+}
+.health-warning.diabetes-warn {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: #fca5a5;
+}
+.health-warning.weight-warn {
+  background: rgba(251,146,60,0.1);
+  border: 1px solid rgba(251,146,60,0.4);
+  color: #fdba74;
+}
+.health-warning.multi-warn {
+  background: rgba(139,92,246,0.1);
+  border: 1px solid rgba(139,92,246,0.4);
+  color: #c4b5fd;
+}
+.health-warning strong { display: block; margin-bottom: 6px; font-size: 14px; }
 
 .diet-columns {
   display: grid;
@@ -310,15 +375,14 @@ tbody tr:last-child td { border-bottom: none; }
   padding: 8px 12px; border-radius: 8px;
   background: rgba(255,255,255,0.04);
 }
-
-/* Extend modal */
-.extend-name  { font-size: 18px; font-weight: 700; color: #00ffcc; margin-bottom: 8px; }
-.extend-current { font-size: 14px; color: #94a3b8; margin-bottom: 24px; }
-.extend-current strong { color: #f59e0b; }
-.extend-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-.extend-options label { font-size: 13px; font-weight: 600; color: #94a3b8; }
-.extend-options select { font-size: 15px; padding: 12px 14px; }
-.extend-btn { margin-top: 4px; }
+.diet-col ul li.health-extra {
+  background: rgba(139,92,246,0.08);
+  border-left: 3px solid #8b5cf6;
+}
+.diet-col ul li.health-danger {
+  background: rgba(239,68,68,0.08);
+  border-left: 3px solid #ef4444;
+}
 
 /* ── LIGHT MODE ─────────────────────────────── */
 body.light-mode {
@@ -329,6 +393,11 @@ body.light-mode .card, body.light-mode form,
 body.light-mode table, body.light-mode .table-container {
   background: rgba(255,255,255,0.92);
   border-color: rgba(0,0,0,0.08);
+}
+body.light-mode .health-section-header {
+  background: rgba(8,145,178,0.07);
+  border-color: rgba(8,145,178,0.25);
+  color: #0891b2;
 }
 body.light-mode .card h3  { color: #64748b; }
 body.light-mode .card h2  { color: #0891b2; }
@@ -347,6 +416,7 @@ body.light-mode .modal-title { color: #0f172a; }
 body.light-mode .modal-close { background: #e2e8f0; color: #1e293b; }
 body.light-mode .diet-col ul li { background: rgba(0,0,0,0.03); }
 body.light-mode select option { background: white; color: #1e293b; }
+body.light-mode .health-sub { color: #94a3b8; }
 
 /* ── RESPONSIVE ─────────────────────────────── */
 @media (max-width: 768px) {
